@@ -27,6 +27,11 @@ import org.apache.commons.compress.utils.IOUtils
 import org.slf4j.LoggerFactory
 import java.nio.file.Path
 import java.io.IOException
+import java.awt.AlphaComposite
+import java.awt.Image
+import java.awt.RenderingHints
+import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
 
 class Optimizer {
 
@@ -37,31 +42,46 @@ class Optimizer {
         tmpArchiveRootDir.toFile().deleteOnExit()
 
         // extract the archive
-        try {
-            val input = ArchiveStreamFactory().createArchiveInputStream(inFile.inputStream())
-            extractArchive(input, tmpArchiveRootDir)
-            input.close()
-        } catch (ex: Exception) {
-            LOG.error("Failed to read archive ${inFile.absolutePath}")
-        }
+        val input = ArchiveStreamFactory().createArchiveInputStream(inFile.inputStream().buffered())
+        extractArchive(input, tmpArchiveRootDir)
+        input.close()
 
         // optimize
-        optimize(tmpArchiveRootDir)
+        optimizeArchive(tmpArchiveRootDir)
 
         // re-pack the archive
-        try {
-            val output = ArchiveStreamFactory().createArchiveOutputStream(ArchiveStreamFactory.ZIP,
-                    outFile.outputStream())
-            packArchive(tmpArchiveRootDir, output)
+        val output = ArchiveStreamFactory().createArchiveOutputStream(
+            ArchiveStreamFactory.ZIP,
+            outFile.outputStream()
+        )
+        packArchive(tmpArchiveRootDir, output)
+    }
 
-            tmpArchiveRootDir.toFile().deleteRecursively()
-        } catch (ex: Exception) {
-            LOG.error("Failed to read archive ${inFile.absolutePath}")
+    private fun optimizeArchive(archiveRootDir: Path) {
+
+        Files.list(archiveRootDir.resolve("Pictures")).forEach {
+            optimizeImage(it)
         }
     }
 
-    fun optimize(path: Path) {
-        TODO()
+    private fun optimizeImage(path: Path) {
+
+        LOG.info("Optimizing '{}' ...", path.toAbsolutePath())
+        val origImage = readImage(path)
+        if ((origImage.width > 800) or (origImage.height > 800)) {
+            val imageType = extractImageType(path)
+            val newWidth: Int
+            val newHeight: Int
+            if (origImage.width > origImage.height) {
+                newWidth = 800
+                newHeight = origImage.height * newWidth / origImage.width
+            } else {
+                newHeight = 800
+                newWidth = origImage.width * newHeight / origImage.height
+            }
+            val smallerImage = createResizedCopy(origImage, newWidth, newHeight, true)
+            writeImage(smallerImage, imageType, path)
+        }
     }
 
     fun printHelp() {
@@ -79,13 +99,13 @@ class Optimizer {
 
     companion object {
 
-        private val LOG= LoggerFactory.getLogger(this::class.java.canonicalName)!!
+        private val LOG = LoggerFactory.getLogger(this::class.java.canonicalName)!!
 
         /**
          * TODO
          */
         @JvmStatic
-        fun main(args : Array<String>) {
+        fun main(args: Array<String>) {
 
             val optimizer = Optimizer()
             if (args.isEmpty()) {
@@ -96,15 +116,47 @@ class Optimizer {
                     File(args[1])
                 } else {
                     val filePath = inFile.toString()
-                    File(filePath.substringBeforeLast('.')
-                            + "_optimized."
-                            + filePath.substringAfterLast('.'))
+                    File(
+                        filePath.substringBeforeLast('.')
+                                + "_optimized."
+                                + filePath.substringAfterLast('.')
+                    )
                 }
                 optimizer.optimizeFile(inFile, outFile)
             }
         }
 
-        fun extractArchive(inStream: ArchiveInputStream, outDir : Path) {
+        private fun readImage(imgFilePath: Path): BufferedImage {
+            return ImageIO.read(imgFilePath.toFile())
+        }
+
+        private fun extractImageType(imgFilePath: Path): String {
+            return imgFilePath.toString().substringAfterLast('.')
+        }
+
+        private fun writeImage(image: BufferedImage, imageType: String, imgFilePath: Path) {
+            ImageIO.write(image, imageType, imgFilePath.toFile())
+        }
+
+        fun createResizedCopy(
+            originalImage: Image,
+            scaledWidth: Int, scaledHeight: Int,
+            preserveAlpha: Boolean
+        ): BufferedImage {
+
+            val imageType = if (preserveAlpha) BufferedImage.TYPE_INT_RGB else BufferedImage.TYPE_INT_ARGB
+            val scaledBI = BufferedImage(scaledWidth, scaledHeight, imageType)
+            val g = scaledBI.createGraphics()
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+            if (preserveAlpha) {
+                g.composite = AlphaComposite.Src
+            }
+            g.drawImage(originalImage, 0, 0, scaledWidth, scaledHeight, null)
+            g.dispose()
+            return scaledBI
+        }
+
+        fun extractArchive(inStream: ArchiveInputStream, outDir: Path) {
 
             var entry: ArchiveEntry? = inStream.nextEntry
             while (entry != null) {
@@ -131,9 +183,9 @@ class Optimizer {
             }
         }
 
-        fun packArchive(inDir : Path, outStream: ArchiveOutputStream) {
+        fun packArchive(inDir: Path, outStream: ArchiveOutputStream) {
 
-            inDir.forEach {
+            Files.walk(inDir).forEach {
                 val file = it.toFile()
                 // maybe skip directories for formats like AR that don't store directories
                 val entry = outStream.createArchiveEntry(file, inDir.relativize(it).toString())
