@@ -33,7 +33,7 @@ import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 
-class Optimizer {
+class Optimizer(val maxRes: Int = 800) {
 
     fun optimizeFile(inFile: File, outFile: File) {
 
@@ -68,15 +68,15 @@ class Optimizer {
 
         LOG.info("Optimizing '{}' ...", path.toAbsolutePath())
         val origImage = readImage(path)
-        if ((origImage.width > 800) or (origImage.height > 800)) {
+        if ((origImage.width > maxRes) or (origImage.height > maxRes)) {
             val imageType = extractImageType(path)
             val newWidth: Int
             val newHeight: Int
             if (origImage.width > origImage.height) {
-                newWidth = 800
+                newWidth = maxRes
                 newHeight = origImage.height * newWidth / origImage.width
             } else {
-                newHeight = 800
+                newHeight = maxRes
                 newWidth = origImage.width * newHeight / origImage.height
             }
             val smallerImage = createResizedCopy(origImage, newWidth, newHeight, true)
@@ -90,11 +90,14 @@ class Optimizer {
         LOG.info("contained withing a Libre- or Open-Office file.")
         LOG.info("")
         LOG.info("Usage:")
-        LOG.info("\tOptimizer [in-file] <out-file>")
+        LOG.info("\tOptimizer [options] [in-file] <out-file>")
+        LOG.info("\t\tOptions:")
+        LOG.info("\t\t-s, --max-size [integer]\tmaximum size in either width or height for the resized images")
         LOG.info("")
         LOG.info("examples:")
-        LOG.info("\tOptimizer myOOFile.opm")
-        LOG.info("\tOptimizer myOOFile.opm myOOFile_small.opm")
+        LOG.info("\tOptimizer myOOFile.ods")
+        LOG.info("\tOptimizer myOOFile.ods myOOFile_small.ods")
+        LOG.info("\tOptimizer --max-size 200 myOOFile.ods")
     }
 
     companion object {
@@ -107,13 +110,24 @@ class Optimizer {
         @JvmStatic
         fun main(args: Array<String>) {
 
-            val optimizer = Optimizer()
-            if (args.isEmpty()) {
+            var nextArgsIdx = 0
+            val maxRes = if (args.size > nextArgsIdx
+                && ((args[nextArgsIdx] == "--max-size") or (args[nextArgsIdx] == "-s")))
+            {
+                nextArgsIdx++
+                args[nextArgsIdx++].toInt()
+            } else {
+                800
+            }
+
+            val optimizer = Optimizer(maxRes)
+
+            if (args.size <= nextArgsIdx) {
                 optimizer.printHelp()
             } else {
-                val inFile = File(args[0])
-                val outFile = if (args.size > 1) {
-                    File(args[1])
+                val inFile = File(args[nextArgsIdx++])
+                val outFile = if (args.size > nextArgsIdx) {
+                    File(args[nextArgsIdx++])
                 } else {
                     val filePath = inFile.toString()
                     File(

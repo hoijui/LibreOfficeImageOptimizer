@@ -21,8 +21,21 @@ _target/libreofficeimageoptimizer-*-jar-with-dependencies.jar_.
 ```bash
 java -cp libreofficeimageoptimizer-*-jar-with-dependencies.jar \
         net.hoijui.libreofficeimageoptimizer.Optimizer \
+        my-oo-file-with-huge-images.ods
+```
+
+```bash
+java -cp libreofficeimageoptimizer-*-jar-with-dependencies.jar \
+        net.hoijui.libreofficeimageoptimizer.Optimizer \
         my-oo-file-with-huge-images.ods \
         optimized-output.ods
+```
+
+```bash
+java -cp libreofficeimageoptimizer-*-jar-with-dependencies.jar \
+        net.hoijui.libreofficeimageoptimizer.Optimizer \
+        --max-size 200 \
+        my-oo-file-with-huge-images.ods
 ```
 
 ## How it works
