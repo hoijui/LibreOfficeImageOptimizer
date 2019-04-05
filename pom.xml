@@ -145,6 +145,23 @@
                 </configuration>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${project.mainClass}</mainClass>
+                        </manifest>
+                        <manifestEntries>
+                            <!-- prevent the local user-name from entering the JAR manifest -->
+                            <Built-By/>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 
