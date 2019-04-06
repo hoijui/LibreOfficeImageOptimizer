@@ -1,9 +1,12 @@
 # Libre- and Open-Office image optimizer
 
 This is an utility that reduces the file-size of images
-contained within a Libre-/Open-Office document,
-in order to cut down on the overall file-size,
-and to save memory and speed up working on the document.
+contained within a Libre-/Open-Office document.
+
+This may heavily cut down on the overall file-size of the document,
+and will thus __save memory__ and __speed up working on the document__,
+This is most useful if one saves and/or opens the document often,
+or in case of little available RAM.
 
 ## Building
 
