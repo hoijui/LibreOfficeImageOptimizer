@@ -21,24 +21,31 @@ _target/libreofficeimageoptimizer-*-jar-with-dependencies.jar_.
 
 ### Examples
 
-```bash
-java -cp libreofficeimageoptimizer-*-jar-with-dependencies.jar \
-        net.hoijui.libreofficeimageoptimizer.Optimizer \
-        my-oo-file-with-huge-images.ods
-```
+For shortening our command lines, we will use this in all the examples (bash code):
 
 ```bash
-java -cp libreofficeimageoptimizer-*-jar-with-dependencies.jar \
-        net.hoijui.libreofficeimageoptimizer.Optimizer \
-        my-oo-file-with-huge-images.ods \
-        optimized-output.ods
+alias docOptimizer='java \
+	-cp $HOME/src/LibreOfficeImageOptimizer/target/libreofficeimageoptimizer-*-jar-with-dependencies.jar \
+	net.hoijui.libreofficeimageoptimizer.Optimizer'
 ```
 
-```bash
-java -cp libreofficeimageoptimizer-*-jar-with-dependencies.jar \
-        net.hoijui.libreofficeimageoptimizer.Optimizer \
-        --max-size 200 \
-        my-oo-file-with-huge-images.ods
+Example 1 - Optimization with defaults:
+
+```console
+docOptimizer document-with-huge-images.ods
+```
+
+Example 2 - Write result to a specific file:
+
+```console
+docOptimizer document-with-huge-images.ods optimized-output.ods
+```
+
+Example 3 - Specify maximum resolution in either direction (width and height);
+the resizing is always preserving the aspect ratio:
+
+```console
+docOptimizer -max-size 200 document-with-huge-images.ods
 ```
 
 ## How it works
@@ -49,3 +56,4 @@ It simply:
  2. resizes the large images, making them smaller
  3. re-zips the archive into an optimized quasi copy
     of the original document
+
